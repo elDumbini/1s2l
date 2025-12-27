@@ -22,4 +22,7 @@ export const blogsService = {
     }
     return updatedBlog;
   },
+  deleteBlog: (id: number) => {
+    return blogsRepository.deleteBlog(id);
+  },
 };

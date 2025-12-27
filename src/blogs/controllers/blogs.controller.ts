@@ -40,4 +40,16 @@ export const blogsController = {
     }
     return res.status(HTTP_STATUSES.NO_CONTENT).send(updatedBlog);
   },
+  deleteBlog: (
+    req: Request<{ id: string }>,
+    res: Response<boolean | ClientError>
+  ) => {
+    const deletedBlog = blogsService.deleteBlog(Number(req.params.id));
+    if (!deletedBlog) {
+      return res.status(HTTP_STATUSES.NOT_FOUND).send({
+        errorsMessages: [{ field: "id", message: "Blog not found" }],
+      });
+    }
+    return res.status(HTTP_STATUSES.NO_CONTENT).send(deletedBlog);
+  },
 };
