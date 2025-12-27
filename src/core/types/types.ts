@@ -16,7 +16,7 @@ export type ClientError = {
 };
 
 export enum ROUTES {
-  BLOGS = "/blogs",
-  TESTING_ALL_DATA = "/testing/all-data",
-  POSTS = "/posts",
+  BLOGS = "blogs",
+  TESTING_ALL_DATA = "testing/all-data",
+  POSTS = "posts",
 }
