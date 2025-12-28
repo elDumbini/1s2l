@@ -10,7 +10,7 @@ export const setupApp = (app: Express) => {
   app.get("/", (req, res) => {
     res.status(200).send({ message: "Hello World" });
   });
-  app.delete(ROUTES.TESTING_ALL_DATA, (req, res) => {
+  app.use(ROUTES.TESTING_ALL_DATA, (req, res) => {
     db.blogs = [];
     db.posts = [];
     res.status(204).send();
