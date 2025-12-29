@@ -7,9 +7,9 @@ setupApp(app);
 
 const PORT = process.env.PORT || 5001;
 
-// Для Railway и других платформ сервер должен запускаться всегда
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    return console.log(`Server is running on port ${PORT}`);
+  });
+}
 export default app;
