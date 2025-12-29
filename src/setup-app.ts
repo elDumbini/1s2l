@@ -8,7 +8,7 @@ import { postsRouter } from "./posts/routes/posts.routes";
 export const setupApp = (app: Express) => {
   app.use(express.json());
   app.get("/", (req, res) => {
-    res.status(200).send({ message: "Hello World" });
+    res.status(200).send({ message: "123123" });
   });
   app.delete(ROUTES.TESTING_ALL_DATA, (req, res) => {
     db.blogs = [];
