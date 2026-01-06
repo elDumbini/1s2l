@@ -1,8 +1,8 @@
 export type PostItem = {
-  id: number;
+  id: string;
   title: string;
   shortDescription: string;
   content: string;
-  blogId: number;
+  blogId: string;
   blogName: string;
 };

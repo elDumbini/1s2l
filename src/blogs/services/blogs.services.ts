@@ -5,7 +5,7 @@ export const blogsService = {
   getBlogs: () => {
     return blogsRepository.getBlogs();
   },
-  getBlogById: (id: number) => {
+  getBlogById: (id: string) => {
     const blog = blogsRepository.getBlogById(id);
     if (!blog) {
       return null;
@@ -15,14 +15,14 @@ export const blogsService = {
   createBlog: (blog: CreateBlogDTO) => {
     return blogsRepository.createBlog(blog);
   },
-  updateBlog: (id: number, newBlogData: CreateBlogDTO) => {
+  updateBlog: (id: string, newBlogData: CreateBlogDTO) => {
     const updatedBlog = blogsRepository.updateBlog(id, newBlogData);
     if (!updatedBlog) {
       return null;
     }
     return updatedBlog;
   },
-  deleteBlog: (id: number) => {
+  deleteBlog: (id: string) => {
     return blogsRepository.deleteBlog(id);
   },
 };

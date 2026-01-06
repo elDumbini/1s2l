@@ -12,7 +12,7 @@ export const postsController = {
     req: Request<{ id: string }>,
     res: Response<GetPostDTO | ClientError>
   ) => {
-    const post = postsService.getPostById(Number(req.params.id));
+    const post = postsService.getPostById(req.params.id);
     if (!post) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],
@@ -22,7 +22,7 @@ export const postsController = {
   },
   createPost: (
     req: Request<{}, {}, CreatePostDTO>,
-    res: Response<number | ClientError>
+    res: Response<PostItem | ClientError>
   ) => {
     const post = postsService.createPost(req.body);
     if (!post) {
@@ -37,7 +37,7 @@ export const postsController = {
     res: Response<PostItem | ClientError>
   ) => {
     const updatedPost = postsService.updatePost(
-      Number(req.params.id),
+      req.params.id,
       req.body
     );
     if (!updatedPost) {
@@ -51,7 +51,7 @@ export const postsController = {
     req: Request<{ id: string }>,
     res: Response<boolean | ClientError>
   ) => {
-    const deletedPost = postsService.deletePost(Number(req.params.id));
+    const deletedPost = postsService.deletePost(req.params.id);
     if (!deletedPost) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],

@@ -4,7 +4,7 @@ export type CreatePostDTO = {
   title: string;
   shortDescription: string;
   content: string;
-  blogId: number;
+  blogId: string;
 };
 
 export type GetPostsDTO = CreatePostDTO[];

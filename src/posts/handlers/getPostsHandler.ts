@@ -9,12 +9,13 @@ export const getPostHandler = (
   res: Response<GetPostDTO | ClientError>
 ) => {
   try {
-    const post = postsService.getPostById(Number(req.params.id));
+    const post = postsService.getPostById(req.params.id);
     if (!post) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],
       });
     }
+    return res.status(HTTP_STATUSES.OK).send(post);
   } catch (error) {
     throw new ServiceError("Service error", error as Error);
   }

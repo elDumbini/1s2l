@@ -10,7 +10,7 @@ export const blogsController = {
     return res.status(HTTP_STATUSES.OK).send(blogsService.getBlogs());
   },
   getBlogById: (req: Request, res: Response<BlogItem | ClientError>) => {
-    const blog = blogsService.getBlogById(Number(req.params.id));
+    const blog = blogsService.getBlogById(req.params.id || "");
     if (!blog) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Blog not found" }],
@@ -22,17 +22,14 @@ export const blogsController = {
     req: Request<{}, {}, CreateBlogDTO>,
     res: Response<BlogItem | ClientError>
   ) => {
-    blogsService.createBlog(req.body);
-    return res.status(HTTP_STATUSES.CREATED);
+    const newBlog = blogsService.createBlog(req.body);
+    return res.status(HTTP_STATUSES.CREATED).send(newBlog);
   },
   updateBlog: (
     req: Request<{ id: string }, {}, CreateBlogDTO>,
     res: Response<BlogItem | ClientError>
   ) => {
-    const updatedBlog = blogsService.updateBlog(
-      Number(req.params.id),
-      req.body
-    );
+    const updatedBlog = blogsService.updateBlog(req.params.id, req.body);
     if (!updatedBlog) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Blog not found" }],
@@ -44,7 +41,7 @@ export const blogsController = {
     req: Request<{ id: string }>,
     res: Response<boolean | ClientError>
   ) => {
-    const deletedBlog = blogsService.deleteBlog(Number(req.params.id));
+    const deletedBlog = blogsService.deleteBlog(req.params.id);
     if (!deletedBlog) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Blog not found" }],

@@ -1,11 +1,10 @@
 import { Router } from "express";
 
 import { superAdminGuardMiddleware } from "../../core/middlewares/authMiddlware";
-import { idValidation } from "../../core/validations/core.validations";
 import { errorValidationMiddleware } from "../../core/middlewares/errorAccMiddleware";
 import { postsController } from "../controllers/posts.controller";
 import { getPostHandler } from "../handlers/getPostsHandler";
-import { createPostValidation } from "../validations/posts.validations";
+import { createPostValidation, idValidation } from "../validations/posts.validations";
 import { createPostHandler } from "../handlers/createPostsHandler";
 
 export const postsRouter = Router();
@@ -13,7 +12,7 @@ export const postsRouter = Router();
 postsRouter.get("/", postsController.getPosts);
 postsRouter.get(
   "/:id",
-  idValidation(1, 1000),
+  idValidation,
   errorValidationMiddleware,
   getPostHandler
 );
@@ -27,7 +26,7 @@ postsRouter.post(
 postsRouter.put(
   "/:id",
   superAdminGuardMiddleware,
-  idValidation(1, 1000),
+  idValidation,
   createPostValidation,
   errorValidationMiddleware,
   postsController.updatePost
@@ -35,7 +34,7 @@ postsRouter.put(
 postsRouter.delete(
   "/:id",
   superAdminGuardMiddleware,
-  idValidation(1, 1000),
+  idValidation,
   errorValidationMiddleware,
   postsController.deletePost
 );

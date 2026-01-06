@@ -5,7 +5,7 @@ export const postsRepository = {
   getPosts: () => {
     return db.posts;
   },
-  getPostById: (id: number) => {
+  getPostById: (id: string) => {
     const post = db.posts.find((post) => post.id === id);
     if (!post) {
       return null;
@@ -13,25 +13,27 @@ export const postsRepository = {
     return post;
   },
   createPost: (post: CreatePostDTO) => {
-    const blog = db.blogs.find((blog) => blog.id === Number(post.blogId));
+    const blog = db.blogs.find((blog) => blog.id === post.blogId);
 
     if (!blog) {
       return null;
     }
 
-    return db.posts.push({
+    const newPost = {
       ...post,
       blogName: blog.name,
-      id: db.posts.length + 1,
-    });
+      id: Date.now().toString(),
+    };
+    db.posts.push(newPost);
+    return newPost;
   },
-  updatePost: (id: number, newPostData: UpdatePostDTO) => {
+  updatePost: (id: string, newPostData: UpdatePostDTO) => {
     const oldPost = db.posts.find((post) => post.id === id);
     if (!oldPost) {
       return null;
     }
 
-    const blog = db.blogs.find((blog) => blog.id === Number(newPostData.blogId));
+    const blog = db.blogs.find((blog) => blog.id === newPostData.blogId);
     if (!blog) {
       return null;
     }
@@ -45,7 +47,7 @@ export const postsRepository = {
 
     return db.posts[postIndex];
   },
-  deletePost: (id: number) => {
+  deletePost: (id: string) => {
     const index = db.posts.findIndex((post) => post.id === id);
     if (index === -1) {
       return null;

@@ -18,9 +18,20 @@ export const errorValidationMiddleware = (
     .array({ onlyFirstError: true });
 
   if (errors.length) {
+    // Сортируем ошибки по порядку: websiteUrl, name, description
+    const fieldOrder = ["websiteUrl", "name", "description"];
+    const sortedErrors = errors.sort((a, b) => {
+      const indexA = fieldOrder.indexOf(a.field);
+      const indexB = fieldOrder.indexOf(b.field);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
     return res
       .status(HTTP_STATUSES.BAD_REQUEST)
-      .send({ errorMessages: errors });
+      .send({ errorsMessages: sortedErrors });
   }
 
   next();

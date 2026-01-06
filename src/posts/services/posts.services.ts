@@ -5,20 +5,20 @@ export const postsService = {
   getPosts: () => {
     return postsRepository.getPosts();
   },
-  getPostById: (id: number) => {
+  getPostById: (id: string) => {
     return postsRepository.getPostById(id);
   },
   createPost: (post: CreatePostDTO) => {
     return postsRepository.createPost(post);
   },
-  updatePost: (id: number, newPostData: UpdatePostDTO) => {
+  updatePost: (id: string, newPostData: UpdatePostDTO) => {
     const updatedPost = postsRepository.updatePost(id, newPostData);
     if (!updatedPost) {
       return null;
     }
     return updatedPost;
   },
-  deletePost: (id: number) => {
+  deletePost: (id: string) => {
     return postsRepository.deletePost(id);
   },
 };
