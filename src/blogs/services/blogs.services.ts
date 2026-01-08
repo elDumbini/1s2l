@@ -1,28 +1,24 @@
 import { CreateBlogDTO } from "../dto/blogs.dto";
 import { blogsRepository } from "../repositories/blogs.repositories";
+import { BlogItem } from "../types/types";
 
 export const blogsService = {
-  getBlogs: () => {
-    return blogsRepository.getBlogs();
+  getBlogs: async (): Promise<BlogItem[]> => {
+    return await blogsRepository.getBlogs();
   },
-  getBlogById: (id: string) => {
-    const blog = blogsRepository.getBlogById(id);
-    if (!blog) {
-      return null;
-    }
-    return blog;
+  getBlogById: async (id: string): Promise<BlogItem | null> => {
+    return await blogsRepository.getBlogById(id);
   },
-  createBlog: (blog: CreateBlogDTO) => {
-    return blogsRepository.createBlog(blog);
+  createBlog: async (blog: CreateBlogDTO): Promise<BlogItem> => {
+    return await blogsRepository.createBlog(blog);
   },
-  updateBlog: (id: string, newBlogData: CreateBlogDTO) => {
-    const updatedBlog = blogsRepository.updateBlog(id, newBlogData);
-    if (!updatedBlog) {
-      return null;
-    }
-    return updatedBlog;
+  updateBlog: async (
+    id: string,
+    newBlogData: CreateBlogDTO
+  ): Promise<BlogItem | null> => {
+    return await blogsRepository.updateBlog(id, newBlogData);
   },
-  deleteBlog: (id: string) => {
-    return blogsRepository.deleteBlog(id);
+  deleteBlog: async (id: string): Promise<boolean> => {
+    return await blogsRepository.deleteBlog(id);
   },
 };

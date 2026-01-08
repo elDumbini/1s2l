@@ -4,12 +4,12 @@ import { GetPostDTO } from "../dto/posts.dto";
 import { ClientError, HTTP_STATUSES } from "../../core/types/types";
 import { ServiceError } from "../../core/utils/errorsInstances";
 
-export const getPostHandler = (
+export const getPostHandler = async (
   req: Request<{ id: string }>,
   res: Response<GetPostDTO | ClientError>
 ) => {
   try {
-    const post = postsService.getPostById(req.params.id);
+    const post = await postsService.getPostById(req.params.id);
     if (!post) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],

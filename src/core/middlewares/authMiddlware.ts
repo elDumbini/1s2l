@@ -14,7 +14,7 @@ export const superAdminGuardMiddleware = (
     res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
     return;
   }
-  console.log("auth", auth);
+
   const [authType, token] = auth.split(" ");
   if (authType !== "Basic") {
     res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);

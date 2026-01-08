@@ -1,15 +1,23 @@
 import express from "express";
 import { setupApp } from "./setup-app";
 import "dotenv/config";
-
-const app = express();
-setupApp(app);
+import { runDB } from "./db/mongodb";
 
 const PORT = process.env.PORT || 5001;
 
-// Для Render.com сервер должен запускаться всегда
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+const bootstrap = async () => {
+  const app = express();
+  setupApp(app);
 
-export default app;
+  const mongoUrl =
+    process.env.MONGO_URL ||
+    "mongodb+srv://mememe:123456cxzER@cluster0.djuezb4.mongodb.net/?appName=Cluster0";
+  await runDB(mongoUrl);
+
+  app.listen(PORT, () => {
+    console.log(`Example app listening on port ${PORT}`);
+  });
+  return app;
+};
+
+bootstrap();

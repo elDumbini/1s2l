@@ -1,24 +1,24 @@
 import { CreatePostDTO, UpdatePostDTO } from "../dto/posts.dto";
 import { postsRepository } from "../repositories/posts.repository";
+import { PostItem } from "../types/posts";
 
 export const postsService = {
-  getPosts: () => {
-    return postsRepository.getPosts();
+  getPosts: async (): Promise<PostItem[]> => {
+    return await postsRepository.getPosts();
   },
-  getPostById: (id: string) => {
-    return postsRepository.getPostById(id);
+  getPostById: async (id: string): Promise<PostItem | null> => {
+    return await postsRepository.getPostById(id);
   },
-  createPost: (post: CreatePostDTO) => {
-    return postsRepository.createPost(post);
+  createPost: async (post: CreatePostDTO): Promise<PostItem | null> => {
+    return await postsRepository.createPost(post);
   },
-  updatePost: (id: string, newPostData: UpdatePostDTO) => {
-    const updatedPost = postsRepository.updatePost(id, newPostData);
-    if (!updatedPost) {
-      return null;
-    }
-    return updatedPost;
+  updatePost: async (
+    id: string,
+    newPostData: UpdatePostDTO
+  ): Promise<PostItem | null> => {
+    return await postsRepository.updatePost(id, newPostData);
   },
-  deletePost: (id: string) => {
-    return postsRepository.deletePost(id);
+  deletePost: async (id: string): Promise<boolean> => {
+    return await postsRepository.deletePost(id);
   },
 };

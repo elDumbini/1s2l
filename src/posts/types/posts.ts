@@ -5,4 +5,5 @@ export type PostItem = {
   content: string;
   blogId: string;
   blogName: string;
+  createdAt: string;
 };

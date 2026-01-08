@@ -6,10 +6,22 @@ import {
   createBlogValidation,
 } from "../validations/blogs.validations";
 import { superAdminGuardMiddleware } from "../../core/middlewares/authMiddlware";
+import { paginationAndSortingValidation } from "../../core/validations/core.validations";
 
 export const blogsRouter = Router();
 
-blogsRouter.get("/", blogsController.getBlogs);
+blogsRouter.get(
+  "/",
+  () =>
+    paginationAndSortingValidation({
+      name: "name",
+      description: "description",
+      websiteUrl: "websiteUrl",
+      createdAt: "createdAt",
+      isMembership: "isMembership",
+    }),
+  blogsController.getBlogs
+);
 blogsRouter.get(
   "/:id",
   idValidation,

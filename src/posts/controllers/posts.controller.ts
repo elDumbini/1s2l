@@ -5,14 +5,15 @@ import { postsService } from "../services/posts.services";
 import { PostItem } from "../types/posts";
 
 export const postsController = {
-  getPosts: (_: any, res: Response<PostItem[]>) => {
-    return res.status(HTTP_STATUSES.OK).send(postsService.getPosts());
+  getPosts: async (_: any, res: Response<PostItem[]>) => {
+    const posts = await postsService.getPosts();
+    return res.status(HTTP_STATUSES.OK).send(posts);
   },
-  getPostById: (
+  getPostById: async (
     req: Request<{ id: string }>,
     res: Response<GetPostDTO | ClientError>
   ) => {
-    const post = postsService.getPostById(req.params.id);
+    const post = await postsService.getPostById(req.params.id);
     if (!post) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],
@@ -20,11 +21,11 @@ export const postsController = {
     }
     return res.status(HTTP_STATUSES.OK).send(post);
   },
-  createPost: (
+  createPost: async (
     req: Request<{}, {}, CreatePostDTO>,
     res: Response<PostItem | ClientError>
   ) => {
-    const post = postsService.createPost(req.body);
+    const post = await postsService.createPost(req.body);
     if (!post) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "blogId", message: "Blog not found" }],
@@ -32,26 +33,28 @@ export const postsController = {
     }
     return res.status(HTTP_STATUSES.CREATED).send(post);
   },
-  updatePost: (
+  updatePost: async (
     req: Request<{ id: string }, {}, UpdatePostDTO>,
     res: Response<PostItem | ClientError>
   ) => {
-    const updatedPost = postsService.updatePost(
+    const updatedPost = await postsService.updatePost(
       req.params.id,
       req.body
     );
     if (!updatedPost) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
-        errorsMessages: [{ field: "id", message: "Post not found or Blog not found" }],
+        errorsMessages: [
+          { field: "id", message: "Post not found or Blog not found" },
+        ],
       });
     }
     return res.status(HTTP_STATUSES.NO_CONTENT).send(updatedPost);
   },
-  deletePost: (
+  deletePost: async (
     req: Request<{ id: string }>,
     res: Response<boolean | ClientError>
   ) => {
-    const deletedPost = postsService.deletePost(req.params.id);
+    const deletedPost = await postsService.deletePost(req.params.id);
     if (!deletedPost) {
       return res.status(HTTP_STATUSES.NOT_FOUND).send({
         errorsMessages: [{ field: "id", message: "Post not found" }],
