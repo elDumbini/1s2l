@@ -15,14 +15,14 @@ export const postsRouter = Router();
 
 postsRouter.get(
   "/",
-  () =>
-    paginationAndSortingValidation({
-      title: "title",
-      shortDescription: "shortDescription",
-      content: "content",
-      blogId: "blogId",
-      createdAt: "createdAt",
-    }),
+  paginationAndSortingValidation({
+    title: "title",
+    shortDescription: "shortDescription",
+    content: "content",
+    blogId: "blogId",
+    createdAt: "createdAt",
+  }),
+  errorValidationMiddleware,
   postsController.getPosts
 );
 postsRouter.get(

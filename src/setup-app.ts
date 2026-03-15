@@ -12,10 +12,19 @@ export const setupApp = (app: Express) => {
   app.get("/", (req, res) => {
     res.status(200).send();
   });
-  app.delete(ROUTES.TESTING_ALL_DATA, async (req, res) => {
-    await blogCollection.deleteMany({});
-    await postCollection.deleteMany({});
-    res.status(204).send();
+  app.delete(ROUTES.TESTING_ALL_DATA, async (req, res, next) => {
+    try {
+      if (!blogCollection || !postCollection) {
+        return res.status(HTTP_STATUSES.INTERNAL_SERVER_ERROR).json({
+          errorsMessages: [{ message: "Database not initialized" }],
+        });
+      }
+      await blogCollection.deleteMany({});
+      await postCollection.deleteMany({});
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
   });
   app.use(ROUTES.BLOGS, blogsRouter);
   app.use(ROUTES.POSTS, postsRouter);
@@ -28,6 +37,7 @@ export const setupApp = (app: Express) => {
       err: Error | AppError,
       req: Request,
       res: Response,
+      next: NextFunction
     ) => {
       if (err instanceof AppError) {
         return res.status(err.statusCode).json({

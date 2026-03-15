@@ -5,9 +5,9 @@ export enum SortDirection {
   Desc = "desc",
 }
 
-const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 10;
-const DEFAULT_SORT_DIRECTION = SortDirection.Desc;
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_PAGE_SIZE = 10;
+export const DEFAULT_SORT_DIRECTION = SortDirection.Desc;
 
 export const idValidation = (mix = 1, max = 1000) =>
   param("id")
@@ -23,31 +23,37 @@ export const idValidation = (mix = 1, max = 1000) =>
 export function paginationAndSortingValidation<T extends string>(
   sortFieldsEnum: Record<string, T>
 ) {
+  const defaultSortBy = Object.values(sortFieldsEnum)[0];
+  
   return [
     query("pageNumber")
-      .default(DEFAULT_PAGE)
-      .isInt({ min: 1 })
-      .withMessage("Page number must be a positive integer")
-      .toInt(),
+      .optional({ checkFalsy: true })
+      .customSanitizer((value) => {
+        if (!value || value === "") return DEFAULT_PAGE;
+        const num = parseInt(String(value), 10);
+        return isNaN(num) ? DEFAULT_PAGE : num;
+      }),
 
     query("pageSize")
-      .default(DEFAULT_PAGE_SIZE)
-      .isInt({ min: 1, max: 100 })
-      .withMessage("Page size must be between 1 and 100")
-      .toInt(),
+      .optional({ checkFalsy: true })
+      .customSanitizer((value) => {
+        if (!value || value === "") return DEFAULT_PAGE_SIZE;
+        const num = parseInt(String(value), 10);
+        return isNaN(num) ? DEFAULT_PAGE_SIZE : num;
+      }),
 
     query("sortBy")
-      .default(Object.values(sortFieldsEnum)[0])
-      .isIn(Object.values(sortFieldsEnum))
-      .withMessage(
-        `Allowed sort fields: ${Object.values(sortFieldsEnum).join(", ")}`
-      ),
+      .optional({ checkFalsy: true })
+      .customSanitizer((value) => {
+        if (!value || value === "") return defaultSortBy;
+        return value;
+      }),
 
     query("sortDirection")
-      .default(DEFAULT_SORT_DIRECTION)
-      .isIn(Object.values(SortDirection))
-      .withMessage(
-        `Sort direction must be one of: ${Object.values(SortDirection).join(", ")}`
-      ),
+      .optional({ checkFalsy: true })
+      .customSanitizer((value) => {
+        if (!value || value === "") return DEFAULT_SORT_DIRECTION;
+        return value;
+      }),
   ];
 }

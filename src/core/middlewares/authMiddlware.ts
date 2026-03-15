@@ -17,12 +17,10 @@ export const superAdminGuardMiddleware = (
 
   const [authType, token] = auth.split(" ");
   if (authType !== "Basic") {
-    res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
-    return;
+    return res.status(HTTP_STATUSES.UNAUTHORIZED).send();
   }
   if (!token) {
-    res.sendStatus(HTTP_STATUSES.UNAUTHORIZED);
-    return;
+    return res.status(HTTP_STATUSES.UNAUTHORIZED).send();
   }
 
   const credentials = Buffer.from(token, "base64").toString("utf-8");

@@ -7,3 +7,10 @@ export type PostItem = {
   blogName: string;
   createdAt: string;
 };
+
+export type GetPostsQuery = {
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: string;
+};

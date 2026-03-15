@@ -1,10 +1,10 @@
 import { CreatePostDTO, UpdatePostDTO } from "../dto/posts.dto";
 import { postsRepository } from "../repositories/posts.repository";
-import { PostItem } from "../types/posts";
+import { PostItem, GetPostsQuery } from "../types/posts";
 
 export const postsService = {
-  getPosts: async (): Promise<PostItem[]> => {
-    return await postsRepository.getPosts();
+  getPosts: async (query: GetPostsQuery) => {
+    return await postsRepository.getPosts(query);
   },
   getPostById: async (id: string): Promise<PostItem | null> => {
     return await postsRepository.getPostById(id);
@@ -20,5 +20,22 @@ export const postsService = {
   },
   deletePost: async (id: string): Promise<boolean> => {
     return await postsRepository.deletePost(id);
+  },
+  getPostsByBlogId: async (
+    blogId: string,
+    query: {
+      pageNumber: number;
+      pageSize: number;
+      sortBy: string;
+      sortDirection: string;
+    }
+  ) => {
+    return await postsRepository.getPostsByBlogId(blogId, query);
+  },
+  createPostForBlog: async (
+    blogId: string,
+    post: Omit<CreatePostDTO, "blogId">
+  ): Promise<PostItem | null> => {
+    return await postsRepository.createPostForBlog(blogId, post);
   },
 };

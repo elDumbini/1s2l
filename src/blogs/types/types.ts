@@ -6,3 +6,11 @@ export type BlogItem = {
   createdAt: string;
   isMembership: boolean;
 };
+
+export type GetBlogsQuery = {
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDirection?: string;
+  searchNameTerm?: string;
+};

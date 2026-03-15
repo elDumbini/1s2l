@@ -1,10 +1,20 @@
+import { DatabaseError } from "../../core/utils/errorsInstances";
 import { CreateBlogDTO } from "../dto/blogs.dto";
 import { blogsRepository } from "../repositories/blogs.repositories";
-import { BlogItem } from "../types/types";
+import { BlogItem, GetBlogsQuery } from "../types/types";
 
 export const blogsService = {
-  getBlogs: async (): Promise<BlogItem[]> => {
-    return await blogsRepository.getBlogs();
+  getBlogs: async (query: GetBlogsQuery) => {
+    try {
+      const res = await blogsRepository.getBlogs(query);
+      console.log(res);
+      return res;
+    } catch (error) {
+      throw new DatabaseError(
+        error instanceof Error ? error.message : "Failed to get blogs",
+        error instanceof Error ? error : undefined
+      );
+    }
   },
   getBlogById: async (id: string): Promise<BlogItem | null> => {
     return await blogsRepository.getBlogById(id);

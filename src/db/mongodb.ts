@@ -8,7 +8,10 @@ export let blogCollection: Collection<BlogItem>;
 export let postCollection: Collection<PostItem>;
 
 export async function runDB(url: string): Promise<void> {
-  client = new MongoClient(url);
+  client = new MongoClient(url, {
+    serverSelectionTimeoutMS: 5000, // 5 секунд таймаут
+    connectTimeoutMS: 10000, // 10 секунд на подключение
+  });
   db = client.db("mememe");
   
   try {
@@ -20,7 +23,12 @@ export async function runDB(url: string): Promise<void> {
     
     console.log("✅ Connected to the database");
   } catch (e) {
-    await client.close();
+    console.error("❌ Database connection error:", e);
+    try {
+      await client.close();
+    } catch (closeError) {
+      // Игнорируем ошибки закрытия
+    }
     throw new Error(`❌ Database not connected: ${e}`);
   }
 }
