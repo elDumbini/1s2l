@@ -1,5 +1,11 @@
 import { PostItem } from "../types/posts";
+import { PaginatedResponse } from "../../core/types/common.types";
 
+// Response DTOs
+export type GetPostsDTO = PaginatedResponse<PostItem>;
+export type GetPostDTO = PostItem;
+
+// Request DTOs
 export type CreatePostDTO = {
   title: string;
   shortDescription: string;
@@ -7,6 +13,4 @@ export type CreatePostDTO = {
   blogId: string;
 };
 
-export type GetPostsDTO = CreatePostDTO[];
-export type GetPostDTO = PostItem;
 export type UpdatePostDTO = CreatePostDTO;

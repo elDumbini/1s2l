@@ -1,12 +1,10 @@
 import { BlogItem } from "../types/types";
+import { PaginatedResponse } from "../../core/types/common.types";
 
-export type GetBlogsDTO = {
-  items: BlogItem[];
-  totalCount: number;
-  pagesCount: number;
-  page: number;
-  pageSize: number;
-};
+// Response DTOs
+export type GetBlogsDTO = PaginatedResponse<BlogItem>;
+
+// Request DTOs
 export type CreateBlogDTO = Pick<
   BlogItem,
   "name" | "description" | "websiteUrl"

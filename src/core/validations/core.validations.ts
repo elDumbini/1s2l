@@ -16,15 +16,13 @@ export const idValidation = (mix = 1, max = 1000) =>
     .isString()
     .withMessage("ID must be a string")
     .isLength({ min: mix, max: max })
-    .withMessage("ID must be between 1 and 1000 characters")
-    .isNumeric()
-    .withMessage("ID must be a numeric string");
+    .withMessage("ID must be between 1 and 1000 characters");
 
 export function paginationAndSortingValidation<T extends string>(
   sortFieldsEnum: Record<string, T>
 ) {
   const defaultSortBy = Object.values(sortFieldsEnum)[0];
-  
+
   return [
     query("pageNumber")
       .optional({ checkFalsy: true })

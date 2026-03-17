@@ -8,7 +8,6 @@ import {
   createPostValidation,
   idValidation,
 } from "../validations/posts.validations";
-import { createPostHandler } from "../handlers/createPostsHandler";
 import { paginationAndSortingValidation } from "../../core/validations/core.validations";
 
 export const postsRouter = Router();

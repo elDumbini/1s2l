@@ -1,3 +1,6 @@
+import { PaginationQuery } from "../../core/types/common.types";
+
+// Domain types (сущности домена)
 export type BlogItem = {
   id: string;
   name: string;
@@ -7,10 +10,7 @@ export type BlogItem = {
   isMembership: boolean;
 };
 
-export type GetBlogsQuery = {
-  pageNumber?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortDirection?: string;
+// Query types (для HTTP запросов)
+export type GetBlogsQuery = PaginationQuery & {
   searchNameTerm?: string;
 };

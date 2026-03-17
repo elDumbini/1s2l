@@ -1,3 +1,6 @@
+import { PaginationQuery } from "../../core/types/common.types";
+
+// Domain types (сущности домена)
 export type PostItem = {
   id: string;
   title: string;
@@ -8,9 +11,5 @@ export type PostItem = {
   createdAt: string;
 };
 
-export type GetPostsQuery = {
-  pageNumber?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortDirection?: string;
-};
+// Query types (для HTTP запросов)
+export type GetPostsQuery = PaginationQuery;

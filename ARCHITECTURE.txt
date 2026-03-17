@@ -1,0 +1,1220 @@
+================================================================================
+                    АРХИТЕКТУРА ПРОЕКТА - ПОДРОБНОЕ ОПИСАНИЕ
+================================================================================
+
+СОДЕРЖАНИЕ:
+1. Общая архитектура и слои
+2. Структура папок и их назначение
+3. Типы данных и их хранение
+4. Поток данных через слои
+5. Правила: что куда класть
+6. Общие компоненты (core)
+
+================================================================================
+1. ОБЩАЯ АРХИТЕКТУРА И СЛОИ
+================================================================================
+
+Проект использует трёхслойную архитектуру (3-Layer Architecture):
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    HTTP REQUEST (Express)                       │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  СЛОЙ 1: CONTROLLER (Контроллер)                                │
+│  Назначение: Обработка HTTP запросов и ответов                  │
+│  Ответственность:                                               │
+│    - Извлечение данных из req (params, query, body)             │
+│    - Вызов сервисов                                             │
+│    - Формирование HTTP ответов (status codes, headers)          │
+│    - Передача ошибок в next() для глобального обработчика       │
+│  НЕ ДЕЛАЕТ:                                                     │
+│    - Бизнес-логику                                              │
+│    - Валидацию данных (только HTTP валидация через middleware)  │
+│    - Работу с БД                                                │
+│    - Преобразование типов (Number(), String() и т.д.)           │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  СЛОЙ 2: SERVICE (Сервис)                                       │
+│  Назначение: Бизнес-логика приложения                           │
+│  Ответственность:                                               │
+│    - Применение дефолтных значений                              │
+│    - Преобразование данных (например, SortDirection → MongoSort)│
+│    - Валидация бизнес-правил (существует ли блог, пост и т.д.)  │
+│    - Обработка ошибок и преобразование в доменные исключения    │
+│    - Координация работы нескольких репозиториев                 │
+│    - Транзакции и атомарные операции                            │
+│    - Вычисления и бизнес-расчёты                                 │
+│    - Агрегация данных из нескольких источников                  │
+│    - Кэширование (при необходимости)                            │
+│    - Логирование бизнес-событий                                 │
+│    - Работа с внешними API и сервисами                           │
+│    - Управление жизненным циклом сущностей                       │
+│  НЕ ДЕЛАЕТ:                                                     │
+│    - HTTP операции                                              │
+│    - Прямую работу с БД                                         │
+│    - Маппинг документов БД в доменные модели                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  СЛОЙ 3: REPOSITORY (Репозиторий)                               │
+│  Назначение: Работа с базой данных                               │
+│  Ответственность:                                                │
+│    - Выполнение запросов к БД (find, insert, update, delete)    │
+│    - Маппинг документов БД (_id) в доменные модели (id)          │
+│    - Преобразование типов БД (ObjectId → string)                 │
+│    - Бросание исключений при ошибках БД                          │
+│  НЕ ДЕЛАЕТ:                                                      │
+│    - Бизнес-логику                                               │
+│    - Применение дефолтных значений                                │
+│    - Обработку ошибок (только бросает исключения)               │
+│    - Валидацию данных                                            │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    MONGODB DATABASE                              │
+└─────────────────────────────────────────────────────────────────┘
+
+================================================================================
+2. СТРУКТУРА ПАПОК И ИХ НАЗНАЧЕНИЕ
+================================================================================
+
+src/
+├── blogs/                          # Модуль блогов (доменная область)
+│   ├── controllers/                # HTTP контроллеры
+│   │   └── blogs.controller.ts     # Обработчики HTTP запросов для блогов
+│   ├── services/                   # Бизнес-логика
+│   │   └── blogs.services.ts       # Сервисы для работы с блогами
+│   ├── repositories/               # Работа с БД
+│   │   └── blogs.repositories.ts  # Репозитории для работы с коллекцией blogs
+│   ├── routes/                     # Маршрутизация Express
+│   │   └── blogs.router.ts         # Определение эндпоинтов и middleware
+│   ├── dto/                        # Data Transfer Objects (DTO)
+│   │   └── blogs.dto.ts            # Типы для передачи данных (Request/Response)
+│   ├── types/                      # Доменные типы
+│   │   └── types.ts                # Типы сущностей (BlogItem, GetBlogsQuery)
+│   ├── validations/                 # Валидация входных данных
+│   │   └── blogs.validations.ts    # Правила валидации для блогов
+│   ├── middlewares/                 # Локальные middleware
+│   │   └── blogs.middlewares.ts    # Middleware специфичные для блогов
+│   └── handlers/                   # (Не используется в текущей архитектуре)
+│
+├── posts/                          # Модуль постов (доменная область)
+│   ├── controllers/                # HTTP контроллеры
+│   │   └── posts.controller.ts     # Обработчики HTTP запросов для постов
+│   ├── services/                   # Бизнес-логика
+│   │   └── posts.services.ts       # Сервисы для работы с постами
+│   ├── repositories/               # Работа с БД
+│   │   └── posts.repository.ts     # Репозитории для работы с коллекцией posts
+│   ├── routes/                     # Маршрутизация Express
+│   │   └── posts.routes.ts         # Определение эндпоинтов и middleware
+│   ├── dto/                        # Data Transfer Objects
+│   │   └── posts.dto.ts            # Типы для передачи данных
+│   ├── types/                      # Доменные типы
+│   │   └── posts.ts                 # Типы сущностей (PostItem, GetPostsQuery)
+│   ├── validations/                 # Валидация входных данных
+│   │   └── posts.validations.ts    # Правила валидации для постов
+│   ├── middlewares/                 # Локальные middleware
+│   │   └── posts.middlewares.ts    # Middleware специфичные для постов
+│   └── handlers/                   # (Устаревшие обработчики, можно удалить)
+│
+├── core/                           # ОБЩИЕ КОМПОНЕНТЫ (см. раздел 6)
+│   ├── types/                      # Общие типы
+│   │   ├── types.ts                # HTTP статусы, ClientError, ROUTES
+│   │   └── common.types.ts         # Общие типы (PaginationQuery, PaginatedResponse)
+│   ├── validations/                 # Общие валидации
+│   │   └── core.validations.ts     # Пагинация, сортировка, idValidation
+│   ├── middlewares/                 # Общие middleware
+│   │   ├── authMiddlware.ts        # Аутентификация (Basic Auth)
+│   │   └── errorAccMiddleware.ts   # Обработка ошибок валидации
+│   ├── utils/                      # Утилиты
+│   │   └── errorsInstances.ts      # Классы ошибок (AppError, NotFoundError и т.д.)
+│   └── constants/                   # Константы
+│       └── regConstants.ts         # Регулярные выражения
+│
+├── db/                             # Работа с базой данных
+│   └── mongodb.ts                  # Подключение к MongoDB, инициализация коллекций
+│
+├── index.ts                        # Точка входа приложения
+└── setup-app.ts                    # Настройка Express приложения
+
+ПРИНЦИП ОРГАНИЗАЦИИ:
+- Каждая доменная область (blogs, posts) имеет свою папку
+- Внутри каждой области - одинаковые папки (controllers, services, repositories и т.д.)
+- Общие компоненты вынесены в core/
+- База данных - отдельная папка db/
+
+================================================================================
+3. ТИПЫ ДАННЫХ И ИХ ХРАНЕНИЕ
+================================================================================
+
+3.1. ДОМЕННЫЕ ТИПЫ (Domain Types)
+────────────────────────────────────────────────────────────────────────────
+Место: src/{domain}/types/
+Примеры: BlogItem, PostItem
+
+Назначение:
+  - Описывают сущности предметной области
+  - Используются во всех слоях (Controller, Service, Repository)
+  - Не зависят от БД или HTTP
+
+Пример:
+  // src/blogs/types/types.ts
+  export type BlogItem = {
+    id: string;              // Преобразован из _id MongoDB
+    name: string;
+    description: string;
+    websiteUrl: string;
+    createdAt: string;
+    isMembership: boolean;
+  };
+
+
+3.2. DTO (Data Transfer Objects)
+────────────────────────────────────────────────────────────────────────────
+Место: src/{domain}/dto/
+Примеры: CreateBlogDTO, GetBlogsDTO, UpdatePostDTO
+
+Назначение:
+  - Типы для передачи данных между слоями
+  - Request DTO: данные, которые приходят в запросе (CreateBlogDTO)
+  - Response DTO: данные, которые возвращаются в ответе (GetBlogsDTO)
+
+Пример:
+  // src/blogs/dto/blogs.dto.ts
+  export type CreateBlogDTO = Pick<BlogItem, "name" | "description" | "websiteUrl">;
+  export type GetBlogsDTO = PaginatedResponse<BlogItem>;
+
+
+3.3. QUERY TYPES (Типы запросов)
+────────────────────────────────────────────────────────────────────────────
+Место: src/{domain}/types/
+Примеры: GetBlogsQuery, GetPostsQuery
+
+Назначение:
+  - Типы для query параметров HTTP запросов
+  - Расширяют PaginationQuery из core/types/common.types.ts
+  - Используются в контроллерах для типизации req.query
+
+Пример:
+  // src/blogs/types/types.ts
+  import { PaginationQuery } from "../../core/types/common.types";
+  
+  export type GetBlogsQuery = PaginationQuery & {
+    searchNameTerm?: string;  // Дополнительный параметр для блогов
+  };
+
+
+3.4. ОБЩИЕ ТИПЫ (Common Types)
+────────────────────────────────────────────────────────────────────────────
+Место: src/core/types/
+Файлы:
+  - types.ts: HTTP статусы, ClientError, ROUTES
+  - common.types.ts: PaginationQuery, PaginatedResponse, MongoSortDirection
+
+Назначение:
+  - Типы, используемые в нескольких доменных областях
+  - Базовые типы для пагинации, сортировки
+  - Утилиты для преобразования типов
+
+Пример:
+  // src/core/types/common.types.ts
+  export type PaginationQuery = {
+    pageNumber?: number;
+    pageSize?: number;
+    sortBy?: string;
+    sortDirection?: SortDirection;
+  };
+  
+  export type PaginatedResponse<T> = {
+    items: T[];
+    totalCount: number;
+    pagesCount: number;
+    page: number;
+    pageSize: number;
+  };
+
+
+3.5. ТИПЫ ДОКУМЕНТОВ БД (Database Document Types)
+────────────────────────────────────────────────────────────────────────────
+Место: src/db/mongodb.ts и src/{domain}/repositories/
+
+Назначение:
+  - Внутренние типы для работы с MongoDB
+  - Используются только в репозиториях
+  - Имеют поле _id (ObjectId) вместо id (string)
+
+Пример:
+  // src/db/mongodb.ts
+  type BlogDocument = Document & {
+    name: string;
+    description: string;
+    websiteUrl: string;
+    createdAt: string;
+    isMembership: boolean;
+  };
+
+
+ИЕРАРХИЯ ТИПОВ:
+  core/types/common.types.ts (базовые типы)
+         ↓
+  {domain}/types/ (расширяют базовые, добавляют доменные)
+         ↓
+  {domain}/dto/ (используют доменные типы для DTO)
+         ↓
+  Используются в Controller → Service → Repository
+
+================================================================================
+4. ПОТОК ДАННЫХ ЧЕРЕЗ СЛОИ
+================================================================================
+
+ПРИМЕР: GET /blogs?pageNumber=1&pageSize=10&searchNameTerm=test
+
+1. HTTP REQUEST
+   ────────────────────────────────────────────────────────────────────────
+   Express получает запрос и направляет в роутер
+
+2. ROUTER (blogs.router.ts)
+   ────────────────────────────────────────────────────────────────────────
+   - Применяет middleware: paginationAndSortingValidation, errorValidationMiddleware
+   - Направляет в контроллер: blogsController.getBlogs
+
+3. CONTROLLER (blogs.controller.ts)
+   ────────────────────────────────────────────────────────────────────────
+   Входные данные:
+     req.query = {
+       pageNumber: "1",        // строка из URL
+       pageSize: "10",          // строка из URL
+       searchNameTerm: "test"   // строка из URL
+     }
+   
+   Действия:
+     - Извлекает данные из req.query (уже валидированные middleware)
+     - Вызывает сервис: blogsService.getBlogs(req.query)
+     - Получает результат и отправляет HTTP ответ
+   
+   Код:
+     const blogs = await blogsService.getBlogs(req.query);
+     return res.status(HTTP_STATUSES.OK).send(blogs);
+
+4. SERVICE (blogs.services.ts)
+   ────────────────────────────────────────────────────────────────────────
+   Входные данные:
+     query = {
+       pageNumber: 1,           // уже число (преобразовано middleware)
+       pageSize: 10,            // уже число
+       searchNameTerm: "test"
+     }
+   
+   Действия:
+     - Применяет дефолтные значения (если нужно)
+     - Преобразует SortDirection в MongoSortDirection
+     - Вызывает репозиторий: blogsRepository.getBlogs({...})
+     - Обрабатывает ошибки и бросает доменные исключения
+   
+   Код:
+     const pageNumber = query.pageNumber || DEFAULT_PAGE;
+     const sortDirection = query.sortDirection || DEFAULT_SORT_DIRECTION;
+     
+     return await blogsRepository.getBlogs({
+       pageNumber,
+       pageSize: query.pageSize || DEFAULT_PAGE_SIZE,
+       sortBy: query.sortBy || "createdAt",
+       sortDirection: toMongoSortDirection(sortDirection),
+       searchNameTerm: query.searchNameTerm || "",
+     });
+
+5. REPOSITORY (blogs.repositories.ts)
+   ────────────────────────────────────────────────────────────────────────
+   Входные данные:
+     params = {
+       pageNumber: 1,
+       pageSize: 10,
+       sortBy: "createdAt",
+       sortDirection: -1,        // преобразовано в число для MongoDB
+       searchNameTerm: "test"
+     }
+   
+   Действия:
+     - Формирует MongoDB запрос с фильтрами
+     - Выполняет запрос к БД: blogCollection.find(...)
+     - Маппит документы БД в доменные модели (BlogItem)
+     - Возвращает PaginatedResponse<BlogItem>
+   
+   Код:
+     const filter: any = {};
+     if (searchNameTerm) {
+       filter.name = { $regex: searchNameTerm, $options: "i" };
+     }
+     
+     const items = await blogCollection
+       .find(filter)
+       .sort({ [sortBy]: sortDirection })
+       .skip(skip)
+       .limit(pageSize)
+       .toArray();
+     
+     return {
+       items: items.map(mapDocumentToBlog),  // _id → id
+       totalCount,
+       pagesCount: Math.ceil(totalCount / pageSize),
+       page: pageNumber,
+       pageSize: pageSize,
+     };
+
+6. MONGODB
+   ────────────────────────────────────────────────────────────────────────
+   Выполняет запрос и возвращает документы с полем _id
+
+7. ОБРАТНЫЙ ПОТОК
+   ────────────────────────────────────────────────────────────────────────
+   Repository → Service → Controller → HTTP Response
+   
+   Каждый слой возвращает данные в формате, понятном следующему слою:
+   - Repository возвращает доменные модели (BlogItem[])
+   - Service возвращает доменные модели или void
+   - Controller формирует HTTP ответ
+
+================================================================================
+5. ПРАВИЛА: ЧТО КУДА КЛАСТЬ
+================================================================================
+
+5.1. КОНТРОЛЛЕР (Controller)
+────────────────────────────────────────────────────────────────────────────
+ЧТО КЛАСТЬ:
+  ✓ Извлечение данных из req (params, query, body)
+  ✓ Вызов сервисов
+  ✓ Формирование HTTP ответов (res.status().send())
+  ✓ Передача ошибок в next(error)
+
+ЧТО НЕ КЛАСТЬ:
+  ✗ Бизнес-логику (проверки, валидация бизнес-правил)
+  ✗ Преобразование типов (Number(), String())
+  ✗ Работу с БД
+  ✗ Применение дефолтных значений
+  ✗ Обработку ошибок (только next(error))
+
+ПРИМЕР ПРАВИЛЬНОГО КОНТРОЛЛЕРА:
+  getBlogById: async (req, res, next) => {
+    try {
+      const blog = await blogsService.getBlogById(req.params.id);
+      return res.status(HTTP_STATUSES.OK).send(blog);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+5.2. СЕРВИС (Service)
+────────────────────────────────────────────────────────────────────────────
+ЧТО КЛАСТЬ:
+
+  1. БИЗНЕС-ЛОГИКА И ВАЛИДАЦИЯ БИЗНЕС-ПРАВИЛ:
+     ✓ Проверка существования сущностей (существует ли блог для поста)
+     ✓ Валидация бизнес-правил (можно ли удалить блог с постами)
+     ✓ Применение бизнес-ограничений (максимальное количество постов)
+     ✓ Проверка прав доступа на уровне бизнес-логики
+     ✓ Валидация состояний (можно ли обновить удалённый пост)
+
+  2. ПРИМЕНЕНИЕ ДЕФОЛТНЫХ ЗНАЧЕНИЙ:
+     ✓ pageNumber = 1, pageSize = 10 (если не указано)
+     ✓ sortBy = "createdAt" (если не указано)
+     ✓ Автоматическое заполнение полей (createdAt, isMembership)
+
+  3. ПРЕОБРАЗОВАНИЕ ДАННЫХ:
+     ✓ SortDirection ("asc"/"desc") → MongoSortDirection (1/-1)
+     ✓ Преобразование форматов данных между слоями
+     ✓ Нормализация входных данных
+
+  4. ОБРАБОТКА ОШИБОК:
+     ✓ Преобразование ошибок БД в доменные исключения
+     ✓ Логирование ошибок для отладки
+     ✓ Бросание правильных типов исключений (NotFoundError, ServiceError)
+
+  5. КООРДИНАЦИЯ РЕПОЗИТОРИЕВ:
+     ✓ Вызов нескольких репозиториев в правильном порядке
+     ✓ Сборка данных из разных источников
+     ✓ Пример: создание поста требует проверки существования блога
+
+  6. ТРАНЗАКЦИИ И АТОМАРНЫЕ ОПЕРАЦИИ:
+     ✓ Выполнение нескольких операций БД как единое целое
+     ✓ Откат изменений при ошибке
+     ✓ Пример: удаление блога + удаление всех его постов
+
+  7. ВЫЧИСЛЕНИЯ И БИЗНЕС-РАСЧЁТЫ:
+     ✓ Подсчёт статистики (количество постов в блоге)
+     ✓ Расчёт агрегированных данных (средняя длина поста)
+     ✓ Бизнес-метрики и аналитика
+
+  8. АГРЕГАЦИЯ ДАННЫХ:
+     ✓ Объединение данных из нескольких репозиториев
+     ✓ Обогащение данных дополнительной информацией
+     ✓ Пример: пост + информация о блоге + статистика
+
+  9. КЭШИРОВАНИЕ (при необходимости):
+     ✓ Кэширование часто запрашиваемых данных
+     ✓ Инвалидация кэша при изменениях
+     ✓ Оптимизация производительности
+
+  10. ЛОГИРОВАНИЕ БИЗНЕС-СОБЫТИЙ:
+      ✓ Логирование важных бизнес-операций
+      ✓ Аудит изменений (кто, когда, что изменил)
+      ✓ Отслеживание бизнес-метрик
+
+  11. РАБОТА С ВНЕШНИМИ API И СЕРВИСАМИ:
+      ✓ Интеграция с внешними сервисами (email, SMS, платежи)
+      ✓ Вызов внешних API для получения данных
+      ✓ Синхронизация с внешними системами
+
+  12. УПРАВЛЕНИЕ ЖИЗНЕННЫМ ЦИКЛОМ СУЩНОСТЕЙ:
+      ✓ Автоматические действия при создании/удалении
+      ✓ Каскадные операции (удаление постов при удалении блога)
+      ✓ Управление состояниями (активен/неактивен)
+
+ЧТО НЕ КЛАСТЬ:
+  ✗ HTTP операции (req, res, next)
+  ✗ Прямую работу с БД (только через репозитории)
+  ✗ Маппинг документов БД (это в репозитории)
+  ✗ Валидацию формата данных (это в middleware/validations)
+  ✗ Работу с файловой системой напрямую (лучше через утилиты)
+
+ПРИМЕРЫ ПРАВИЛЬНОГО СЕРВИСА:
+
+  Пример 1: Простая проверка существования
+  ────────────────────────────────────────────────────────────────────────
+  getBlogById: async (id: string): Promise<BlogItem> => {
+    try {
+      const blog = await blogsRepository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      return blog;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to get blog", error);
+    }
+  }
+
+  Пример 2: Координация нескольких репозиториев
+  ────────────────────────────────────────────────────────────────────────
+  createPost: async (post: CreatePostDTO): Promise<PostItem> => {
+    try {
+      // Бизнес-правило: проверка существования блога
+      const blog = await blogsRepository.getBlogById(post.blogId);
+      if (!blog) {
+        throw new NotFoundError("Blog not found", "blogId");
+      }
+      
+      // Бизнес-правило: проверка лимита постов
+      const postsCount = await postsRepository.countByBlogId(post.blogId);
+      if (postsCount >= MAX_POSTS_PER_BLOG) {
+        throw new ServiceError("Maximum posts limit reached");
+      }
+      
+      return await postsRepository.createPost(post);
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ServiceError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to create post", error);
+    }
+  }
+
+  Пример 3: Транзакция (удаление блога с постами)
+  ────────────────────────────────────────────────────────────────────────
+  deleteBlog: async (id: string): Promise<boolean> => {
+    try {
+      // Проверка существования
+      const blog = await blogsRepository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      
+      // Бизнес-правило: можно ли удалить блог с постами?
+      const postsCount = await postsRepository.countByBlogId(id);
+      if (postsCount > 0 && !blog.allowDeleteWithPosts) {
+        throw new ServiceError("Cannot delete blog with posts");
+      }
+      
+      // Транзакция: удаление постов + удаление блога
+      await postsRepository.deleteAllByBlogId(id);
+      return await blogsRepository.deleteBlog(id);
+    } catch (error) {
+      if (error instanceof NotFoundError || error instanceof ServiceError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to delete blog", error);
+    }
+  }
+
+  Пример 4: Агрегация данных
+  ────────────────────────────────────────────────────────────────────────
+  getBlogWithStats: async (id: string): Promise<BlogWithStats> => {
+    try {
+      const blog = await blogsRepository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      
+      // Агрегация данных из разных источников
+      const postsCount = await postsRepository.countByBlogId(id);
+      const lastPost = await postsRepository.getLastPostByBlogId(id);
+      const avgPostLength = await postsRepository.getAvgPostLength(id);
+      
+      return {
+        ...blog,
+        stats: {
+          postsCount,
+          lastPostDate: lastPost?.createdAt,
+          avgPostLength,
+        },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to get blog with stats", error);
+    }
+  }
+
+  Пример 5: Вычисления и бизнес-расчёты
+  ────────────────────────────────────────────────────────────────────────
+  calculateBlogRating: async (id: string): Promise<number> => {
+    try {
+      const blog = await blogsRepository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      
+      const posts = await postsRepository.getPostsByBlogId(id, {});
+      
+      // Бизнес-расчёт: рейтинг на основе количества постов и их длины
+      const totalLength = posts.items.reduce((sum, post) => 
+        sum + post.content.length, 0
+      );
+      const avgLength = totalLength / posts.items.length;
+      const rating = (posts.items.length * 10) + (avgLength / 100);
+      
+      return Math.round(rating * 100) / 100; // Округление до 2 знаков
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to calculate rating", error);
+    }
+  }
+
+  Пример 6: Работа с внешними сервисами
+  ────────────────────────────────────────────────────────────────────────
+  createPost: async (post: CreatePostDTO): Promise<PostItem> => {
+    try {
+      // Проверка бизнес-правил
+      const blog = await blogsRepository.getBlogById(post.blogId);
+      if (!blog) {
+        throw new NotFoundError("Blog not found", "blogId");
+      }
+      
+      // Создание поста
+      const newPost = await postsRepository.createPost(post);
+      
+      // Интеграция с внешним сервисом (например, отправка уведомления)
+      try {
+        await notificationService.sendPostCreatedNotification(newPost);
+      } catch (notificationError) {
+        // Логируем, но не прерываем операцию
+        console.error("Failed to send notification:", notificationError);
+      }
+      
+      return newPost;
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to create post", error);
+    }
+  }
+
+  Пример 7: Применение дефолтных значений и преобразование
+  ────────────────────────────────────────────────────────────────────────
+  getBlogs: async (query: GetBlogsQuery): Promise<PaginatedResponse<BlogItem>> => {
+    try {
+      // Применение дефолтных значений
+      const pageNumber = query.pageNumber || DEFAULT_PAGE;
+      const pageSize = query.pageSize || DEFAULT_PAGE_SIZE;
+      const sortBy = query.sortBy || "createdAt";
+      const sortDirection = query.sortDirection || DEFAULT_SORT_DIRECTION;
+      const searchNameTerm = query.searchNameTerm || "";
+      
+      // Преобразование данных для репозитория
+      return await blogsRepository.getBlogs({
+        pageNumber,
+        pageSize,
+        sortBy,
+        sortDirection: toMongoSortDirection(sortDirection), // Преобразование
+        searchNameTerm,
+      });
+    } catch (error) {
+      throw new DatabaseError("Failed to get blogs", error);
+    }
+  }
+
+
+5.3. РЕПОЗИТОРИЙ (Repository)
+────────────────────────────────────────────────────────────────────────────
+ЧТО КЛАСТЬ:
+  ✓ Запросы к БД (find, insert, update, delete)
+  ✓ Маппинг документов БД (_id) в доменные модели (id)
+  ✓ Преобразование типов БД (ObjectId → string)
+  ✓ Проверку инициализации коллекций
+  ✓ Бросание исключений при ошибках БД
+
+ЧТО НЕ КЛАСТЬ:
+  ✗ Бизнес-логику
+  ✗ Применение дефолтных значений
+  ✗ Обработку ошибок (только бросать исключения)
+  ✗ Валидацию данных
+
+ПРИМЕР ПРАВИЛЬНОГО РЕПОЗИТОРИЯ:
+  getBlogById: async (id: string): Promise<BlogItem | null> => {
+    if (!blogCollection) {
+      throw new Error("Blog collection not initialized");
+    }
+    
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+    
+    const blog = await blogCollection.findOne({ _id: new ObjectId(id) });
+    if (!blog) {
+      return null;
+    }
+    
+    return mapDocumentToBlog(blog);  // _id → id
+  }
+
+
+5.4. ТИПЫ
+────────────────────────────────────────────────────────────────────────────
+ГДЕ КЛАСТЬ:
+
+  Domain Types (BlogItem, PostItem):
+    → src/{domain}/types/
+  
+  DTO (CreateBlogDTO, GetBlogsDTO):
+    → src/{domain}/dto/
+  
+  Query Types (GetBlogsQuery):
+    → src/{domain}/types/ (вместе с domain types)
+  
+  Общие типы (PaginationQuery, PaginatedResponse):
+    → src/core/types/common.types.ts
+  
+  HTTP типы (HTTP_STATUSES, ClientError):
+    → src/core/types/types.ts
+
+
+5.5. ВАЛИДАЦИЯ
+────────────────────────────────────────────────────────────────────────────
+ГДЕ КЛАСТЬ:
+
+  Валидация входных данных (express-validator):
+    → src/{domain}/validations/
+  
+  Общие валидации (пагинация, сортировка):
+    → src/core/validations/
+
+
+5.6. MIDDLEWARE
+────────────────────────────────────────────────────────────────────────────
+ГДЕ КЛАСТЬ:
+
+  Middleware для конкретной области (blogs, posts):
+    → src/{domain}/middlewares/
+  
+  Общие middleware (auth, error handling):
+    → src/core/middlewares/
+
+
+5.7. РОУТЫ
+────────────────────────────────────────────────────────────────────────────
+ГДЕ КЛАСТЬ:
+  → src/{domain}/routes/
+
+ЧТО ДЕЛАЕТ:
+  - Определяет эндпоинты (GET, POST, PUT, DELETE)
+  - Применяет middleware (валидация, аутентификация)
+  - Связывает с контроллерами
+
+================================================================================
+6. ОБЩИЕ КОМПОНЕНТЫ (CORE)
+================================================================================
+
+Папка core/ содержит компоненты, используемые в нескольких доменных областях.
+
+6.1. core/types/
+────────────────────────────────────────────────────────────────────────────
+  types.ts:
+    - HTTP_STATUSES: enum с HTTP статус-кодами
+    - ClientError: тип для ошибок клиента
+    - ROUTES: enum с путями API
+  
+  common.types.ts:
+    - PaginationQuery: базовый тип для пагинации
+    - PaginatedResponse<T>: тип для пагинированных ответов
+    - MongoSortDirection: тип для сортировки MongoDB (1 | -1)
+    - toMongoSortDirection(): утилита преобразования
+
+
+6.2. core/validations/
+────────────────────────────────────────────────────────────────────────────
+  core.validations.ts:
+    - SortDirection: enum (Asc, Desc)
+    - DEFAULT_PAGE, DEFAULT_PAGE_SIZE, DEFAULT_SORT_DIRECTION: константы
+    - idValidation(): валидация ID параметра
+    - paginationAndSortingValidation(): валидация пагинации и сортировки
+
+
+6.3. core/middlewares/
+────────────────────────────────────────────────────────────────────────────
+  authMiddlware.ts:
+    - superAdminGuardMiddleware: проверка Basic Auth
+    - Используется для защищённых эндпоинтов (POST, PUT, DELETE)
+  
+  errorAccMiddleware.ts:
+    - errorValidationMiddleware: обработка ошибок валидации express-validator
+    - Формирует ответы с ошибками валидации
+
+
+6.4. core/utils/
+────────────────────────────────────────────────────────────────────────────
+  errorsInstances.ts:
+    - AppError: базовый класс ошибок
+    - DatabaseError: ошибки БД (500)
+    - NotFoundError: ресурс не найден (404)
+    - ServiceError: ошибки сервиса (500)
+
+
+6.5. core/constants/
+────────────────────────────────────────────────────────────────────────────
+  regConstants.ts:
+    - Регулярные выражения для валидации
+
+
+ПРАВИЛО ИСПОЛЬЗОВАНИЯ CORE:
+  - Если компонент используется в 2+ доменных областях → в core/
+  - Если компонент специфичен для одной области → в {domain}/
+
+================================================================================
+7. ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ
+================================================================================
+
+7.1. СОЗДАНИЕ НОВОГО ЭНДПОИНТА
+────────────────────────────────────────────────────────────────────────────
+Шаг 1: Определить роут (routes/blogs.router.ts)
+  blogsRouter.post(
+    "/",
+    superAdminGuardMiddleware,      // Аутентификация
+    createBlogValidation,            // Валидация входных данных
+    errorValidationMiddleware,       // Обработка ошибок валидации
+    blogsController.createBlog       // Контроллер
+  );
+
+Шаг 2: Создать контроллер (controllers/blogs.controller.ts)
+  createBlog: async (req, res, next) => {
+    try {
+      const newBlog = await blogsService.createBlog(req.body);
+      return res.status(HTTP_STATUSES.CREATED).send(newBlog);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+Шаг 3: Создать сервис (services/blogs.services.ts)
+  createBlog: async (blog: CreateBlogDTO): Promise<BlogItem> => {
+    try {
+      return await blogsRepository.createBlog(blog);
+    } catch (error) {
+      throw new DatabaseError("Failed to create blog", error);
+    }
+  }
+
+Шаг 4: Создать репозиторий (repositories/blogs.repositories.ts)
+  createBlog: async (blog: CreateBlogDTO): Promise<BlogItem> => {
+    if (!blogCollection) {
+      throw new Error("Blog collection not initialized");
+    }
+    
+    const createdAt = new Date().toISOString();
+    const result = await blogCollection.insertOne({
+      name: blog.name,
+      description: blog.description,
+      websiteUrl: blog.websiteUrl,
+      createdAt,
+      isMembership: false,
+    });
+    
+    return {
+      id: result.insertedId.toString(),
+      ...blog,
+      createdAt,
+      isMembership: false,
+    };
+  }
+
+
+7.2. ДОБАВЛЕНИЕ НОВОГО ТИПА
+────────────────────────────────────────────────────────────────────────────
+Если тип используется только в одной области:
+  → src/{domain}/types/
+  
+Если тип используется в нескольких областях:
+  → src/core/types/common.types.ts
+
+
+7.3. ДОБАВЛЕНИЕ НОВОЙ ВАЛИДАЦИИ
+────────────────────────────────────────────────────────────────────────────
+Если валидация специфична для области:
+  → src/{domain}/validations/
+  
+Если валидация общая (пагинация, сортировка):
+  → src/core/validations/
+
+
+7.4. ОБРАБОТКА ОШИБОК
+────────────────────────────────────────────────────────────────────────────
+В Repository:
+  - Бросать исключения: throw new Error("...")
+  
+В Service:
+  - Обрабатывать ошибки и бросать доменные исключения:
+    throw new NotFoundError("Blog not found");
+    throw new DatabaseError("Failed to get blog", error);
+  
+В Controller:
+  - Передавать ошибки в next(): next(error)
+  
+В setup-app.ts:
+  - Глобальный обработчик ошибок преобразует исключения в HTTP ответы
+
+================================================================================
+8. ВАЖНЫЕ ПРИНЦИПЫ
+================================================================================
+
+1. РАЗДЕЛЕНИЕ ОТВЕТСТВЕННОСТИ (Separation of Concerns)
+   - Каждый слой отвечает только за свою область
+   - Controller не знает о БД
+   - Service не знает о HTTP
+   - Repository не знает о бизнес-логике
+
+2. ЗАВИСИМОСТИ ТОЛЬКО ВНИЗ
+   - Controller → Service → Repository
+   - Никогда наоборот!
+
+3. ТИПИЗАЦИЯ
+   - Все данные типизированы
+   - Используются TypeScript типы для безопасности
+
+4. ОБРАБОТКА ОШИБОК
+   - Ошибки пробрасываются через слои
+   - Глобальный обработчик в setup-app.ts
+
+5. ПЕРЕИСПОЛЬЗОВАНИЕ
+   - Общие компоненты в core/
+   - Доменные компоненты в {domain}/
+
+================================================================================
+9. ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ И ПАТТЕРНЫ ДЛЯ СЕРВИСОВ
+================================================================================
+
+9.1. КОГДА НУЖЕН СЕРВИС, А КОГДА МОЖНО ОБОЙТИСЬ БЕЗ НЕГО
+────────────────────────────────────────────────────────────────────────────
+
+СЕРВИС НУЖЕН, ЕСЛИ:
+  ✓ Есть бизнес-логика (проверки, правила, расчёты)
+  ✓ Нужна координация нескольких репозиториев
+  ✓ Требуется преобразование данных между слоями
+  ✓ Нужны транзакции или атомарные операции
+  ✓ Требуется агрегация данных из разных источников
+  ✓ Есть интеграция с внешними сервисами
+  ✓ Нужно логирование бизнес-событий
+
+СЕРВИС МОЖЕТ БЫТЬ ПРОСТЫМ (тонкая прослойка), ЕСЛИ:
+  - Просто передача данных от контроллера к репозиторию
+  - Нет бизнес-логики
+  - Нет координации репозиториев
+  - Нет преобразований данных
+
+ПРИМЕР ПРОСТОГО СЕРВИСА (тонкая прослойка):
+  getBlogById: async (id: string): Promise<BlogItem | null> => {
+    return await blogsRepository.getBlogById(id);
+  }
+
+ПРИМЕР СЛОЖНОГО СЕРВИСА (с бизнес-логикой):
+  createPost: async (post: CreatePostDTO): Promise<PostItem> => {
+    // Проверка существования блога (бизнес-правило)
+    const blog = await blogsRepository.getBlogById(post.blogId);
+    if (!blog) {
+      throw new NotFoundError("Blog not found", "blogId");
+    }
+    
+    // Проверка лимита постов (бизнес-правило)
+    const count = await postsRepository.countByBlogId(post.blogId);
+    if (count >= MAX_POSTS) {
+      throw new ServiceError("Post limit reached");
+    }
+    
+    // Создание поста
+    return await postsRepository.createPost(post);
+  }
+
+
+9.2. ПАТТЕРНЫ РАБОТЫ С СЕРВИСАМИ
+────────────────────────────────────────────────────────────────────────────
+
+ПАТТЕРН 1: Service как Facade (Фасад)
+  Сервис скрывает сложность работы с несколькими репозиториями
+  Контроллер вызывает один метод сервиса, а сервис координирует работу
+  
+  Пример:
+    // Контроллер
+    const result = await blogsService.getBlogWithPosts(blogId);
+    
+    // Сервис координирует работу
+    getBlogWithPosts: async (id: string) => {
+      const blog = await blogsRepository.getBlogById(id);
+      const posts = await postsRepository.getPostsByBlogId(id);
+      return { blog, posts };
+    }
+
+ПАТТЕРН 2: Service как Validator (Валидатор бизнес-правил)
+  Сервис проверяет бизнес-правила перед операциями
+  
+  Пример:
+    deleteBlog: async (id: string) => {
+      // Бизнес-правило: нельзя удалить блог с активными постами
+      const hasActivePosts = await postsRepository.hasActivePosts(id);
+      if (hasActivePosts) {
+        throw new ServiceError("Cannot delete blog with active posts");
+      }
+      return await blogsRepository.deleteBlog(id);
+    }
+
+ПАТТЕРН 3: Service как Transformer (Преобразователь)
+  Сервис преобразует данные между форматами
+  
+  Пример:
+    getBlogs: async (query: GetBlogsQuery) => {
+      // Преобразование SortDirection для MongoDB
+      const mongoSort = toMongoSortDirection(query.sortDirection);
+      return await blogsRepository.getBlogs({
+        ...query,
+        sortDirection: mongoSort,
+      });
+    }
+
+ПАТТЕРН 4: Service как Orchestrator (Оркестратор)
+  Сервис координирует сложные операции с несколькими шагами
+  
+  Пример:
+    transferPosts: async (fromBlogId: string, toBlogId: string) => {
+      // 1. Проверка существования блогов
+      const fromBlog = await blogsRepository.getBlogById(fromBlogId);
+      const toBlog = await blogsRepository.getBlogById(toBlogId);
+      if (!fromBlog || !toBlog) {
+        throw new NotFoundError("Blog not found");
+      }
+      
+      // 2. Получение постов
+      const posts = await postsRepository.getPostsByBlogId(fromBlogId);
+      
+      // 3. Обновление постов
+      for (const post of posts.items) {
+        await postsRepository.updatePost(post.id, {
+          ...post,
+          blogId: toBlogId,
+          blogName: toBlog.name,
+        });
+      }
+      
+      return { transferred: posts.items.length };
+    }
+
+
+9.3. РАБОТА С ОШИБКАМИ В СЕРВИСАХ
+────────────────────────────────────────────────────────────────────────────
+
+ПРАВИЛО 1: Пробрасывание доменных исключений
+  Сервис должен бросать доменные исключения (NotFoundError, ServiceError),
+  а не технические (Error, DatabaseError из репозитория)
+  
+  Правильно:
+    if (!blog) {
+      throw new NotFoundError("Blog not found");
+    }
+  
+  Неправильно:
+    if (!blog) {
+      throw new Error("Blog not found"); // Техническая ошибка
+    }
+
+ПРАВИЛО 2: Оборачивание ошибок репозитория
+  Ошибки репозитория оборачиваются в ServiceError или DatabaseError
+  
+  Правильно:
+    try {
+      return await blogsRepository.getBlogById(id);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error; // Пробрасываем доменную ошибку
+      }
+      throw new DatabaseError("Failed to get blog", error); // Оборачиваем техническую
+    }
+
+ПРАВИЛО 3: Логирование ошибок
+  Сервис может логировать ошибки для отладки, но не должен обрабатывать их
+  
+  Пример:
+    try {
+      return await blogsRepository.getBlogById(id);
+    } catch (error) {
+      console.error("Service error in getBlogById:", error);
+      throw new DatabaseError("Failed to get blog", error);
+    }
+
+
+9.4. ОПТИМИЗАЦИЯ СЕРВИСОВ
+────────────────────────────────────────────────────────────────────────────
+
+ОПТИМИЗАЦИЯ 1: Кэширование часто запрашиваемых данных
+  Пример:
+    getBlogById: async (id: string) => {
+      // Проверка кэша
+      const cached = cache.get(`blog:${id}`);
+      if (cached) {
+        return cached;
+      }
+      
+      // Получение из БД
+      const blog = await blogsRepository.getBlogById(id);
+      if (blog) {
+        cache.set(`blog:${id}`, blog, 3600); // Кэш на 1 час
+      }
+      return blog;
+    }
+
+ОПТИМИЗАЦИЯ 2: Batch операции (пакетные операции)
+  Пример:
+    getBlogsByIds: async (ids: string[]) => {
+      // Вместо N запросов - один запрос
+      return await blogsRepository.getBlogsByIds(ids);
+    }
+
+ОПТИМИЗАЦИЯ 3: Ленивая загрузка (lazy loading)
+  Пример:
+    getBlogWithPosts: async (id: string, includePosts: boolean = false) => {
+      const blog = await blogsRepository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      
+      if (includePosts) {
+        const posts = await postsRepository.getPostsByBlogId(id);
+        return { ...blog, posts };
+      }
+      
+      return blog;
+    }
+
+
+9.5. ТЕСТИРОВАНИЕ СЕРВИСОВ
+────────────────────────────────────────────────────────────────────────────
+
+Сервисы должны быть легко тестируемыми:
+  - Зависимости (репозитории) передаются через параметры или DI
+  - Нет прямых зависимостей от БД или HTTP
+  - Бизнес-логика изолирована и может быть протестирована отдельно
+
+Пример тестируемого сервиса:
+  export const blogsService = {
+    getBlogById: async (
+      id: string,
+      repository: BlogsRepository = blogsRepository // DI через параметр
+    ): Promise<BlogItem> => {
+      const blog = await repository.getBlogById(id);
+      if (!blog) {
+        throw new NotFoundError("Blog not found");
+      }
+      return blog;
+    },
+  };
+
+
+9.6. КОГДА СОЗДАВАТЬ ОТДЕЛЬНЫЙ СЕРВИС
+────────────────────────────────────────────────────────────────────────────
+
+СОЗДАЙТЕ ОТДЕЛЬНЫЙ СЕРВИС, ЕСЛИ:
+  ✓ Есть сложная бизнес-логика, специфичная для домена
+  ✓ Нужна координация нескольких репозиториев
+  ✓ Требуется интеграция с внешними сервисами
+  ✓ Нужны сложные вычисления или агрегации
+
+ПРИМЕРЫ:
+  - BlogService: работа с блогами
+  - PostService: работа с постами
+  - NotificationService: отправка уведомлений
+  - AnalyticsService: сбор аналитики
+  - SearchService: поиск по нескольким источникам
+
+
+9.7. КОМПОЗИЦИЯ СЕРВИСОВ
+────────────────────────────────────────────────────────────────────────────
+
+Сервисы могут использовать другие сервисы:
+  - PostService может использовать BlogService для проверки существования блога
+  - AnalyticsService может использовать BlogService и PostService для сбора данных
+
+Пример:
+  // posts/services/posts.services.ts
+  import { blogsService } from "../../blogs/services/blogs.services";
+  
+  createPost: async (post: CreatePostDTO) => {
+    // Использование другого сервиса
+    const blog = await blogsService.getBlogById(post.blogId);
+    if (!blog) {
+      throw new NotFoundError("Blog not found", "blogId");
+    }
+    return await postsRepository.createPost(post);
+  }
+
+ВАЖНО: Избегайте циклических зависимостей между сервисами!
+
+
+9.8. РЕЗЮМЕ: ЧТО ДЕЛАЕТ СЕРВИС
+────────────────────────────────────────────────────────────────────────────
+
+Сервис - это слой бизнес-логики, который:
+
+  ✓ Применяет бизнес-правила и валидирует их
+  ✓ Координирует работу нескольких репозиториев
+  ✓ Преобразует данные между форматами
+  ✓ Выполняет вычисления и расчёты
+  ✓ Агрегирует данные из разных источников
+  ✓ Управляет транзакциями
+  ✓ Интегрируется с внешними сервисами
+  ✓ Логирует бизнес-события
+  ✓ Обрабатывает ошибки и преобразует их в доменные исключения
+
+  ✗ НЕ работает с HTTP (req, res)
+  ✗ НЕ работает напрямую с БД (только через репозитории)
+  ✗ НЕ маппит документы БД (это в репозитории)
+
+================================================================================
+КОНЕЦ ДОКУМЕНТА
+================================================================================

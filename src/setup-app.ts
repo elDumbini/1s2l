@@ -5,6 +5,7 @@ import { HTTP_STATUSES, ROUTES } from "./core/types/types";
 import { blogsRouter } from "./blogs/routes/blogs.router";
 import { postsRouter } from "./posts/routes/posts.routes";
 import { AppError } from "./core/utils/errorsInstances";
+import { usersRouter } from "./users/routes/users.routes";
 
 export const setupApp = (app: Express) => {
   app.use(express.json());
@@ -28,6 +29,7 @@ export const setupApp = (app: Express) => {
   });
   app.use(ROUTES.BLOGS, blogsRouter);
   app.use(ROUTES.POSTS, postsRouter);
+  app.use(ROUTES.USERS, usersRouter);
 
   app.use((req: Request, res: Response) => {
     res.status(HTTP_STATUSES.NOT_FOUND).send();
